@@ -1,10 +1,10 @@
-version: '2'
-
 services:
     app:
+        restart: unless-stopped
+        image: yassinsiouda/conifer-app
         container_name: app
         build: ./webrecorder
-        command: ulimit -n 65536; uwsgi --need-app /code/apps/apiapp.ini
+        command: uwsgi --need-app /code/apps/apiapp.ini
 
         env_file:
             - ./wr.env
@@ -20,13 +20,10 @@ services:
             - ./webrecorder/:/code/
             - ./data:/data
 
-        networks:
-            - default
-            - browsers
-
-        ulimits: { nofile: 65536 }
 
     frontend:
+        restart: unless-stopped
+        image: yassinsiouda/conifer-frontend   
         container_name: frontend
         build:
             context: ./frontend
@@ -63,8 +60,9 @@ services:
 
     recorder:
         container_name: recorder
+        image: yassinsiouda/conifer-recorder
         build: ./webrecorder
-        command: ulimit -n 65536; uwsgi --need-app /code/apps/rec.ini
+        command: uwsgi --need-app /code/apps/rec.ini
 
         env_file:
             - ./wr.env
@@ -77,12 +75,12 @@ services:
             - ./webrecorder/:/code/
             - ./data:/data
 
-        ulimits: { nofile: 65536 }
 
     warcserver:
+        image: yassinsiouda/conifer-warcserver
         container_name: warcserver
         build: ./webrecorder
-        command: ulimit -n 65536; uwsgi --need-app /code/apps/load.ini
+        command: uwsgi --need-app /code/apps/load.ini
 
         env_file:
             - ./wr.env
@@ -94,12 +92,12 @@ services:
             - ./webrecorder/:/code/
             - ./data:/data
 
-        ulimits: { nofile: 65536 }
+
 
     nginx:
         container_name: nginx
         build: ./nginx
-        image: webrecorder/nginx
+        image: yassinsiouda/conifer-nginx
         depends_on:
             - app
             - frontend
@@ -125,8 +123,6 @@ services:
             - "33478:33478/tcp"
             - "33478:33478/udp"
 
-        networks:
-            - browsers
 
         env_file:
             - ./wr.env
@@ -200,6 +196,7 @@ services:
           - 8983:8983
 
     redis:
+        image: yassinsiouda/conifer-redis
         container_name: redis
         build: ./redis
 
@@ -208,21 +205,3 @@ services:
 
         volumes:
             - ./data:/data
-
-    # Postfix (if sending mail locally)
-    mailserver:
-        container_name: mailserver
-        restart: always
-        image: catatnight/postfix
-
-        environment:
-            - "maildomain=localhost"
-            - "smtp_user=test:archive"
-
-
-networks:
-    default:
-        driver: bridge
-    browsers:
-        driver: bridge
-
